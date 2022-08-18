@@ -40,17 +40,15 @@ func main() {
                 "sasl.username": os.Getenv("SASL_USERNAME"),
                 "sasl.password": os.Getenv("SASL_PASSWORD"),
                 "sasl.mechanism": "PLAIN",
-		// Avoid connecting to IPv6 brokers:
-		// This is needed for the ErrAllBrokersDown show-case below
-		// when using localhost brokers on OSX, since the OSX resolver
-		// will return the IPv6 addresses first.
-		// You typically don't need to specify this configuration property.
 		"broker.address.family":    "v4",
 		"group.id":                 "go-test-consumer",
 		"session.timeout.ms":       6000,
 		"auto.offset.reset":        "earliest",
 		"go.events.channel.enable": true,
 		"enable.auto.offset.store": false,
+                "statistics.interval.ms": 5000,
+                "enable.auto.commit": false,
+                "max.poll.interval.ms": 10000,
 	})
 
 	if err != nil {
@@ -58,7 +56,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Created Consumer %v\n", c)
+	fmt.Printf("Created Consumer 0.3 %v\n", c)
 
 	topics := [...]string{"go-client-test-topic"}
 	err = c.SubscribeTopics(topics[:], nil)
