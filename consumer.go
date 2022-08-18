@@ -35,24 +35,24 @@ func main() {
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-                "bootstrap.servers": os.Getenv("BOOTSTRAP_SERVERS"),
-                "security.protocol": "SASL_SSL",
-                "sasl.username": os.Getenv("SASL_USERNAME"),
-                "sasl.password": os.Getenv("SASL_PASSWORD"),
-                "sasl.mechanism": "PLAIN",
+		"bootstrap.servers":        os.Getenv("BOOTSTRAP_SERVERS"),
+		"security.protocol":        "SASL_SSL",
+		"sasl.username":            os.Getenv("SASL_USERNAME"),
+		"sasl.password":            os.Getenv("SASL_PASSWORD"),
+		"sasl.mechanism":           "PLAIN",
 		"broker.address.family":    "v4",
-		"group.id":                 "go-test-consumer",
+		"group.id":                 "local-test-consumer",
 		"session.timeout.ms":       6000,
 		"auto.offset.reset":        "earliest",
 		"go.events.channel.enable": true,
 		"enable.auto.offset.store": false,
-                "statistics.interval.ms": 5000,
-                "enable.auto.commit": false,
-                "max.poll.interval.ms": 10000,
+		"statistics.interval.ms":   5000,
+		"enable.auto.commit":       false,
+		"max.poll.interval.ms":     10000,
 	})
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -62,31 +62,37 @@ func main() {
 	err = c.SubscribeTopics(topics[:], nil)
 	var msgValue string
 
-        for {
-		ev := <-c.Events()
-		if ev == nil {
-			continue
-		}
-
-		switch e := ev.(type) {
-		case *kafka.Message:
-
-			msgValue = string(e.Value)
-			fmt.Printf("Value: %v\n", msgValue)
-			_, err := c.StoreMessage(e)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "%% Error storing offset after message %s:\n", e.TopicPartition)
+	var running = true
+	for running {
+		select {
+		case sig := <-sigchan:
+			fmt.Printf("Caught signal %v: terminating\n", sig)
+			running = false
+		default:
+			ev := <-c.Events()
+			if ev == nil {
+				continue
 			}
 
+			switch e := ev.(type) {
+			case *kafka.Message:
 
-		case kafka.OffsetsCommitted:
-			fmt.Println("offsets committed")
+				msgValue = string(e.Value)
+				fmt.Printf("Value: %v\n", msgValue)
+				_, err := c.StoreMessage(e)
+				if err != nil {
+					_, _ = fmt.Fprintf(os.Stderr, "%% Error storing offset after message %s:\n", e.TopicPartition)
+				}
 
-		default:
-			fmt.Println("Ignored")
+			case kafka.OffsetsCommitted:
+				fmt.Println("offsets committed")
+
+			default:
+				fmt.Println("Ignored")
+			}
 		}
 	}
 
 	fmt.Println("Closing consumer")
-	c.Close()
+	_ = c.Close()
 }
