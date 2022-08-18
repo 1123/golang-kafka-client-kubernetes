@@ -1,1 +1,2 @@
-kubectl top pod kafka-go-consumer-5d8d956df6-gbtk6 -n go-sample-consumer
+POD=$(kubectl get pods --no-headers -o custom-columns=":metadata.name" -n go-sample-consumer)
+kubectl top pod $POD -n go-sample-consumer
