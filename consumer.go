@@ -35,10 +35,10 @@ func main() {
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-                "bootstrap.servers": "",
+                "bootstrap.servers": os.Getenv("BOOTSTRAP_SERVERS"),
                 "security.protocol": "SASL_SSL",
-                "sasl.username": "",
-                "sasl.password": "",
+                "sasl.username": os.Getenv("SASL_USERNAME"),
+                "sasl.password": os.Getenv("SASL_PASSWORD"),
                 "sasl.mechanism": "PLAIN",
 		// Avoid connecting to IPv6 brokers:
 		// This is needed for the ErrAllBrokersDown show-case below

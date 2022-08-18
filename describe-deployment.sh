@@ -1,2 +1,2 @@
 kubectl describe deployment \
-	-n go-sample-consumer kafka-go-consumer 
+	-n go-sample-consumer golang-kafka-consumer

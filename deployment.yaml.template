@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: go-sample-consumer
+  name: golang-kafka-consumer
+  labels:
+    app: golang-kafka-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: golang-kafka-consumer
+  template:
+    metadata:
+      labels:
+        app: golang-kafka-consumer
+    spec:
+      containers:
+      - name: golang-kafka-consumer
+        image: gcr.io/solutionsarchitect-01/golang-kafka-client:0.1
+        env:
+          - name: BOOTSTRAP_SERVERS
+            value: 
+          - name: SASL_USER
+            value: 
+          - name: SASL_PASSWORD
+            value: 
