@@ -49,6 +49,7 @@ func main() {
 		"group.id":                 "go-test-consumer",
 		"session.timeout.ms":       6000,
 		"auto.offset.reset":        "earliest",
+		"go.events.channel.enable": true,
 		"enable.auto.offset.store": false,
 	})
 
@@ -61,48 +62,33 @@ func main() {
 
 	topics := [...]string{"go-client-test-topic"}
 	err = c.SubscribeTopics(topics[:], nil)
+	var msgValue string
 
-	run := true
+        for {
+		ev := <-c.Events()
+		if ev == nil {
+			continue
+		}
 
-	for run {
-		select {
-		case sig := <-sigchan:
-			fmt.Printf("Caught signal %v: terminating\n", sig)
-			run = false
+		switch e := ev.(type) {
+		case *kafka.Message:
+
+			msgValue = string(e.Value)
+			fmt.Printf("Value: %v\n", msgValue)
+			_, err := c.StoreMessage(e)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%% Error storing offset after message %s:\n", e.TopicPartition)
+			}
+
+
+		case kafka.OffsetsCommitted:
+			fmt.Println("offsets committed")
+
 		default:
-			ev := c.Poll(100)
-			if ev == nil {
-				continue
-			}
-
-			switch e := ev.(type) {
-			case *kafka.Message:
-				fmt.Printf("%% Message on %s:\n%s\n",
-					e.TopicPartition, string(e.Value))
-				if e.Headers != nil {
-					fmt.Printf("%% Headers: %v\n", e.Headers)
-				}
-				_, err := c.StoreMessage(e)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "%% Error storing offset after message %s:\n",
-						e.TopicPartition)
-				}
-			case kafka.Error:
-				// Errors should generally be considered
-				// informational, the client will try to
-				// automatically recover.
-				// But in this example we choose to terminate
-				// the application if all brokers are down.
-				fmt.Fprintf(os.Stderr, "%% Error: %v: %v\n", e.Code(), e)
-				if e.Code() == kafka.ErrAllBrokersDown {
-					run = false
-				}
-			default:
-				fmt.Printf("Ignored %v\n", e)
-			}
+			fmt.Println("Ignored")
 		}
 	}
 
-	fmt.Printf("Closing consumer\n")
+	fmt.Println("Closing consumer")
 	c.Close()
 }
